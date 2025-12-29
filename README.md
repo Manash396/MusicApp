@@ -21,7 +21,6 @@ A simple Android Music Player built using **Kotlin**, **Retrofit**, **MediaPlaye
 
 ## 🚀 Screenshots
 
-> _🖼 Paste your screenshots in the `/screenshots` folder and update the links below accordingly._
 
 | Song List Fragment | Music Player UI | 
 |--------------------|------------------|

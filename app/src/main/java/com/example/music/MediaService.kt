@@ -158,7 +158,7 @@ class MediaService : Service(){
         manager.createNotificationChannel(channel)
     }
 
-
+// is the braodcaster
     private fun notifyUIUpdate() {
        val updateIntent = Intent("com.example.music.PLAYER_UPDATE").apply {
            putExtra("is_playing",isPLaying)
