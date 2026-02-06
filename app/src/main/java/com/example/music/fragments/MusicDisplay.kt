@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -134,6 +135,9 @@ class MusicDisplay : Fragment() {
 
         setListener()
 
+        isRepeatOneSong = SharedPref.getBoolean(SharedPref.Keys.IS_LOOPING)
+        Log.d("KrishnaMk",isRepeatOneSong.toString())
+        repeatOneBtn.alpha = if (isRepeatOneSong) 1f else 0.3f
         loadTrack(trackList[currentIndex])
     }
 
@@ -193,6 +197,7 @@ class MusicDisplay : Fragment() {
 
             repeatOneBtn.alpha = if (isRepeatOneSong) 1f else 0.3f
             SharedPref.saveBoolean(SharedPref.Keys.IS_LOOPING,isRepeatOneSong)
+            Log.d("KrishnaMk",isRepeatOneSong.toString())
         }
 
     }
@@ -238,7 +243,6 @@ class MusicDisplay : Fragment() {
             }
         }
         ContextCompat.startForegroundService(requireContext(), intent)
-
     }
 
 

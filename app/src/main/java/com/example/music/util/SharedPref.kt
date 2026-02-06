@@ -2,6 +2,7 @@ package com.example.music.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 
 object SharedPref {
 
@@ -17,7 +18,8 @@ object SharedPref {
     }
 
     fun saveBoolean(key: String, default: Boolean = false) {
-        prefs.edit().putBoolean(key, default)
+        Log.d("KrishnaMk",default.toString())
+        prefs.edit().putBoolean(key, default).apply()
     }
 
     fun getBoolean(key: String): Boolean {
