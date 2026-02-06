@@ -27,51 +27,66 @@ import kotlinx.coroutines.Runnable
 
 
 class MusicDisplay : Fragment() {
-//    register for updating the ui
-private var seekBarMaxSet = false
-    private val  playReceiver  = object : BroadcastReceiver(){
-    override fun onReceive(context: Context?, intent: Intent?) {
-        if (intent?.action == "com.example.music.PLAYER_UPDATE") {
-            val isplay = intent.getBooleanExtra("is_playing", false)
-            val position = intent.getIntExtra("position", 0)
-            val duration = intent.getIntExtra("duration", 0)
+    //    register for updating the ui
+    private var seekBarMaxSet = false
+    private val playReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.example.music.PLAYER_UPDATE") {
+                val isplay = intent.getBooleanExtra("is_playing", false)
+                val position = intent.getIntExtra("position", 0)
+                val duration = intent.getIntExtra("duration", 0)
 
 
-            if (!seekBarMaxSet && duration > 0) {
-                seekBar.max = duration
-                seekBarMaxSet = true
+                if (!seekBarMaxSet && duration > 0) {
+                    seekBar.max = duration
+                    tvDurationView.text = formatMillis(duration)
+                    seekBarMaxSet = true
+                }
+
+                // is position reaches seekbar max
+                if (seekBarMaxSet && position == seekBar.max) {
+                    if (isRepeatOneSong) {
+                        loadTrack(trackList[currentIndex])
+                    } else {
+                        playRightSong()
+                    }
+                }
+
+                if (!isUserSeeking) {
+                    seekBar.progress = position
+                    tvCurrentView.text = formatMillis(position)
+                }
+
+                playBtn.setImageResource(
+                    if (isplay) R.drawable.baseline_pause_circle_24 else R.drawable.baseline_play_circle_24
+                )
+                this@MusicDisplay.isPlaying = isplay
             }
-
-            if (!isUserSeeking) {
-                seekBar.progress = position
-            }
-
-            playBtn.setImageResource(
-                if (isplay) R.drawable.baseline_pause_circle_24 else R.drawable.baseline_play_circle_24
-            )
-          this@MusicDisplay.isPlaying = isplay
         }
+
     }
 
-}
-
-//    views
+    //    views
+    private lateinit var tvCurrentView: TextView
+    private lateinit var tvDurationView: TextView
     private lateinit var titleView: TextView
     private lateinit var artistView: TextView
     private lateinit var imageView: ImageView
     private lateinit var seekBar: SeekBar
-    private lateinit var playBtn : ImageButton
-    private lateinit var leftplayBtn : ImageButton
-    private lateinit var rightplayBtn : ImageButton
+    private lateinit var playBtn: ImageButton
+    private lateinit var leftplayBtn: ImageButton
+    private lateinit var rightplayBtn: ImageButton
+    private lateinit var repeatOneBtn: ImageButton
 
-// media player
+    // media player
     private var isPlaying = false
     private var handler = Handler(Looper.getMainLooper())
     private var isUserSeeking = false
+    private var isRepeatOneSong = false
 
 
-    private lateinit var trackList : ArrayList<Data>
-    private  var currentIndex : Int = 0
+    private lateinit var trackList: ArrayList<Data>
+    private var currentIndex: Int = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -96,53 +111,53 @@ private var seekBarMaxSet = false
         playBtn = view.findViewById(R.id.playBtn)
         leftplayBtn = view.findViewById(R.id.leftPlay)
         rightplayBtn = view.findViewById(R.id.rightPlay)
+        tvCurrentView = view.findViewById(R.id.tvCurrentTime)
+        tvDurationView = view.findViewById(R.id.tvDurationTime)
+        repeatOneBtn = view.findViewById(R.id.loopBtnOne)
 
         super.onViewCreated(view, savedInstanceState)
 
-         arguments?.let {
-             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
-                 trackList = (arguments?.getSerializable("trackList", ArrayList::class.java) as? ArrayList<Data>)!!
-             }else{
-                 @Suppress("DEPRECATION")
-                 trackList = (arguments?.getSerializable("trackList") as? ArrayList<Data>)!!
-             }
+        arguments?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                trackList = (arguments?.getSerializable(
+                    "trackList",
+                    ArrayList::class.java
+                ) as? ArrayList<Data>)!!
+            } else {
+                @Suppress("DEPRECATION")
+                trackList = (arguments?.getSerializable("trackList") as? ArrayList<Data>)!!
+            }
 
-             currentIndex = arguments?.getInt("currentIndex")!!
-         }
+            currentIndex = arguments?.getInt("currentIndex")!!
+        }
 
+        setListener()
+
+        loadTrack(trackList[currentIndex])
+    }
+
+    private fun setListener(){
         playBtn.setOnClickListener {
             if (isPlaying) {
-                 sendMusicCommand(MediaService.ACTION_PAUSE)
+                sendMusicCommand(MediaService.ACTION_PAUSE)
                 playBtn.setImageResource(R.drawable.baseline_play_circle_24)
-            }else{
+            } else {
                 sendMusicCommand(MediaService.ACTION_PLAY)
                 playBtn.setImageResource(R.drawable.baseline_pause_circle_24)
             }
-            isPlaying =!isPlaying
+            isPlaying = !isPlaying
         }
 
         leftplayBtn.setOnClickListener {
-            if(currentIndex>0){
-                currentIndex--
-                MusicSession.currentIndex = currentIndex
-                MusicSession.fullTrackList = trackList
-                MusicSession.currentTrack = trackList[currentIndex]
-                loadTrack(trackList[currentIndex])
-            }
+            playLeftSong()
         }
 
         rightplayBtn.setOnClickListener {
-            if(currentIndex < trackList.size - 1){
-                currentIndex++
-                MusicSession.currentIndex = currentIndex
-                MusicSession.fullTrackList = trackList
-                MusicSession.currentTrack = trackList[currentIndex]
-                loadTrack(trackList[currentIndex])
-            }
+            playRightSong()
         }
 
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             var finalProgress = 0
             override fun onProgressChanged(
                 seekBar: SeekBar?,
@@ -157,25 +172,51 @@ private var seekBarMaxSet = false
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
-              isUserSeeking = true
+                isUserSeeking = true
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 isUserSeeking = false
                 val intent = Intent(requireContext(), MediaService::class.java).apply {
                     action = MediaService.ACTION_SEEK
-                    putExtra("seek_pos",finalProgress)
+                    putExtra("seek_pos", finalProgress)
                 }
                 ContextCompat.startForegroundService(requireContext(), intent)
             }
 
+
         })
 
-        loadTrack(trackList[currentIndex])
+        repeatOneBtn.setOnClickListener {
+            isRepeatOneSong = !isRepeatOneSong
+
+            repeatOneBtn.alpha = if (isRepeatOneSong) 1f else 0.3f
+        }
+
+    }
+    private fun playLeftSong() {
+        if (currentIndex > 0) {
+            currentIndex--
+            MusicSession.currentIndex = currentIndex
+            MusicSession.fullTrackList = trackList
+            MusicSession.currentTrack = trackList[currentIndex]
+            loadTrack(trackList[currentIndex])
+        }
     }
 
+    private fun playRightSong() {
+        if (currentIndex < trackList.size - 1) {
+            currentIndex++
+            MusicSession.currentIndex = currentIndex
+            MusicSession.fullTrackList = trackList
+            MusicSession.currentTrack = trackList[currentIndex]
+            loadTrack(trackList[currentIndex])
+        }
+    }
+
+
     private fun loadTrack(track: Data) {
-        sendMusicCommand(MediaService.ACTION_PLAY,track)
+        sendMusicCommand(MediaService.ACTION_PLAY, track)
         titleView.text = track.title
         artistView.text = track.artist.name
         Picasso.get().load(track.album.cover).into(imageView)
@@ -185,19 +226,18 @@ private var seekBarMaxSet = false
         playBtn.setImageResource(R.drawable.baseline_pause_circle_24)
     }
 
-    private fun sendMusicCommand(action:String, track: Data?=null){
+    private fun sendMusicCommand(action: String, track: Data? = null) {
         val intent = Intent(requireContext(), MediaService::class.java).apply {
             this.action = action
             track?.let {
-                putExtra("track_url",track.preview)
-                putExtra("title",track.title)
-                putExtra("artist",track.artist.name)
+                putExtra("track_url", track.preview)
+                putExtra("title", track.title)
+                putExtra("artist", track.artist.name)
             }
         }
         ContextCompat.startForegroundService(requireContext(), intent)
 
     }
-
 
 
     override fun onDestroy() {
@@ -206,6 +246,12 @@ private var seekBarMaxSet = false
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(playReceiver)
     }
 
+    fun formatMillis(millis: Int): String {
+        val totalSeconds = millis / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return "%02d:%02d".format(minutes, seconds)
+    }
 
 
 }
