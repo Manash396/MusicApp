@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.music.util.SharedPref
 
 class MediaService : Service(){
 
@@ -81,6 +82,9 @@ class MediaService : Service(){
             }
             prepareAsync()
         }
+        val isLoop = SharedPref.getBoolean(SharedPref.Keys.IS_LOOPING)
+        mediaPlayer?.isLooping = isLoop
+
         mediaPlayer?.setOnCompletionListener {
             isPLaying = false
         }

@@ -22,6 +22,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.music.MediaService
 import com.example.music.R
 import com.example.music.data.Data
+import com.example.music.util.SharedPref
 import com.squareup.picasso.Picasso
 import kotlinx.coroutines.Runnable
 
@@ -191,6 +192,7 @@ class MusicDisplay : Fragment() {
             isRepeatOneSong = !isRepeatOneSong
 
             repeatOneBtn.alpha = if (isRepeatOneSong) 1f else 0.3f
+            SharedPref.saveBoolean(SharedPref.Keys.IS_LOOPING,isRepeatOneSong)
         }
 
     }
