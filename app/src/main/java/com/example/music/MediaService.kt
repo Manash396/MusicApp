@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.music.data.Data
 import com.example.music.util.SharedPref
 
 class MediaService : Service(){
@@ -110,6 +111,13 @@ class MediaService : Service(){
         mediaPlayer?.start()
         isPLaying = true
         updateNotification()
+    }
+
+    fun playNewSong(track : Data){
+        currtrackUrl = track.preview
+        title  = track.title
+        artist = track.artist.name
+        playMusic(track.preview)
     }
 
     fun setLoop(){

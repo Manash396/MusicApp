@@ -264,7 +264,6 @@ class MusicDisplay : Fragment() {
 
 
     private fun loadTrack(track: Data) {
-        sendMusicCommand(MediaService.ACTION_PLAY, track)
         titleView.text = track.title
         artistView.text = track.artist.name
         Picasso.get().load(track.album.cover).into(imageView)
@@ -272,6 +271,12 @@ class MusicDisplay : Fragment() {
         isPlaying = true
 
         playBtn.setImageResource(R.drawable.baseline_pause_circle_24)
+
+        if (isBound) {
+            mediaService?.playNewSong(track)// binder available → direct call
+        } else {
+            sendMusicCommand(MediaService.ACTION_PLAY, track) // binder not ready → start service
+        }
     }
 
     // optimisation :  this will be call only once for starting the foreground service
