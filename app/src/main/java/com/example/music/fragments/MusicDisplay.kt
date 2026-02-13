@@ -1,13 +1,16 @@
 package com.example.music.fragments
 
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.ServiceConnection
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -86,6 +89,24 @@ class MusicDisplay : Fragment() {
     private var isUserSeeking = false
     private var isRepeatOneSong = false
 
+    private var mediaService : MediaService? = null
+    private var isBound  = false
+
+    private val connection = object : ServiceConnection{
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?
+        ) {
+           val binder  = service as MediaService.LocalBinder
+            mediaService = binder.getService()
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            mediaService = null
+            isBound = false
+        }
+
+    }
+
 
     private lateinit var trackList: ArrayList<Data>
     private var currentIndex: Int = 0
@@ -141,13 +162,32 @@ class MusicDisplay : Fragment() {
         loadTrack(trackList[currentIndex])
     }
 
+
+    override fun onStart() {
+        super.onStart()
+
+        val intent  = Intent(requireContext(), MediaService::class.java)
+        requireContext().bindService(intent,connection , Context.BIND_AUTO_CREATE)
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        if (isBound){
+            requireContext().unbindService(connection)
+            isBound = false
+        }
+    }
+
     private fun setListener(){
         playBtn.setOnClickListener {
             if (isPlaying) {
-                sendMusicCommand(MediaService.ACTION_PAUSE)
+//                sendMusicCommand(MediaService.ACTION_PAUSE)
+                mediaService?.pauseMusic()
                 playBtn.setImageResource(R.drawable.baseline_play_circle_24)
             } else {
-                sendMusicCommand(MediaService.ACTION_PLAY)
+//                sendMusicCommand(MediaService.ACTION_PLAY)
+                mediaService?.resumeMusic()
                 playBtn.setImageResource(R.drawable.baseline_pause_circle_24)
             }
             isPlaying = !isPlaying
@@ -186,7 +226,7 @@ class MusicDisplay : Fragment() {
                     action = MediaService.ACTION_SEEK
                     putExtra("seek_pos", finalProgress)
                 }
-                ContextCompat.startForegroundService(requireContext(), intent)
+                requireContext().startService(intent)
             }
 
 
@@ -198,6 +238,7 @@ class MusicDisplay : Fragment() {
             repeatOneBtn.alpha = if (isRepeatOneSong) 1f else 0.3f
             SharedPref.saveBoolean(SharedPref.Keys.IS_LOOPING,isRepeatOneSong)
             Log.d("KrishnaMk",isRepeatOneSong.toString())
+            mediaService?.setLoop()
         }
 
     }
@@ -233,6 +274,7 @@ class MusicDisplay : Fragment() {
         playBtn.setImageResource(R.drawable.baseline_pause_circle_24)
     }
 
+    // optimisation :  this will be call only once for starting the foreground service
     private fun sendMusicCommand(action: String, track: Data? = null) {
         val intent = Intent(requireContext(), MediaService::class.java).apply {
             this.action = action

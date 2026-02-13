@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.os.Binder
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -22,6 +23,12 @@ class MediaService : Service(){
     private var currtrackUrl : String? = null
     private var title : String = ""
     private var artist : String = ""
+
+    private val binder  =  LocalBinder()
+
+    inner class LocalBinder : Binder() {
+        fun getService() : MediaService = this@MediaService
+    }
 
     private var handler = Handler(Looper.getMainLooper())
     private var updateRunnable = object  : Runnable{
@@ -70,7 +77,7 @@ class MediaService : Service(){
         return START_NOT_STICKY
     }
 
-
+//    Even if the Runnable is the same, the queue doesn’t care — it treats it as a new scheduled execution.
     private fun playMusic(url: String){
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer().apply {
@@ -78,6 +85,7 @@ class MediaService : Service(){
             setOnPreparedListener {
                 it.start()
                 isPLaying = true
+                handler.removeCallbacks(updateRunnable)
                 handler.post(updateRunnable)
             }
             prepareAsync()
@@ -92,16 +100,20 @@ class MediaService : Service(){
         updateNotification()
     }
 
-    private fun pauseMusic(){
+     fun pauseMusic(){
         mediaPlayer?.pause()
         isPLaying = false
         updateNotification()
     }
 
-    private fun resumeMusic(){
+     fun resumeMusic(){
         mediaPlayer?.start()
         isPLaying = true
         updateNotification()
+    }
+
+    fun setLoop(){
+        mediaPlayer?.isLooping = SharedPref.getBoolean(SharedPref.Keys.IS_LOOPING)
     }
 // for stoping the music and notification
     private fun stopMusic() {
@@ -137,8 +149,8 @@ class MediaService : Service(){
         ).build()
 
         val notification = NotificationCompat.Builder(this,"music_channel")
-            .setContentTitle(title)
-            .setContentText(artist)
+            .setContentTitle(MusicSession.currentTrack?.title)
+            .setContentText(MusicSession.currentTrack?.artist?.name)
             .setSmallIcon(R.mipmap.app_logo_round)
             .setContentIntent(contentIntent)
             .addAction(playpauseAction)
@@ -147,7 +159,7 @@ class MediaService : Service(){
             .setOnlyAlertOnce(true)
             .build()
 
-        startForeground(2,notification)
+        startForeground(1,notification)
 
     }
 
@@ -163,7 +175,7 @@ class MediaService : Service(){
         manager.createNotificationChannel(channel)
     }
 
-// is the braodcaster
+// is the broadcaster
     private fun notifyUIUpdate() {
        val updateIntent = Intent("com.example.music.PLAYER_UPDATE").apply {
            putExtra("is_playing",isPLaying)
@@ -183,7 +195,7 @@ class MediaService : Service(){
         super.onDestroy()
     }
     override fun onBind(intent: Intent?): IBinder? {
-        return null
+        return binder
     }
 
 }

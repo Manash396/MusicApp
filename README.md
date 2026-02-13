@@ -4,11 +4,11 @@ A simple Android Music Player built using **Kotlin**, **Retrofit**, **MediaPlaye
 
 ## 📱 Features
 
-- ▶️ Foreground audio playback via `MediaPlayer` in a `Service`
-- 🔀 Play/Pause/Next/Previous track support
-- 🔊 Real-time SeekBar sync using `BroadcastReceiver`
-- 📟 Persistent notification with media controls
--
+- Foreground audio playback via `MediaPlayer` in a `Service`
+- Play/Pause/Next/Previous track support
+- Real-time SeekBar sync using `BroadcastReceiver`
+- Persistent notification with media controls
+- Using localbinder for direct communication between activity and service (optimisation)
 
 ## 🧱 Tech Stack
 
@@ -17,7 +17,7 @@ A simple Android Music Player built using **Kotlin**, **Retrofit**, **MediaPlaye
 - **Networking**: Retrofit2, Gson
 - **Media**: `android.media.MediaPlayer`
 - **Image Loading**: Picasso
-- **Architecture**: Service + BroadcastReceiver communication
+- **Architecture**: Service (Foreground and bound )+ BroadcastReceiver communication
 
 ## 🚀 Screenshots
 
